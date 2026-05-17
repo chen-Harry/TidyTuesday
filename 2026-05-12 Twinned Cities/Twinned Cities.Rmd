@@ -1,0 +1,65 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+cities <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-05-12/cities.csv')
+links <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-05-12/links.csv')
+```
+
+```{r}
+edges_data_europe <- links %>%
+  left_join(cities, by=c("source" = "id")) %>%
+  rename(lng_from = lng, lat_from = lat) %>%
+  left_join(cities, by=c("target" = "id")) %>%
+  rename(lng_to = lng, lat_to = lat) %>%
+  filter(continent.x == "Europe", continent.y == "Europe")
+```
+
+```{r}
+cities_europe <- cities %>%
+  filter(continent == "Europe")
+```
+
+
+
+```{r}
+ggplot() +
+  borders("world", colour = "gray80", fill="gray95") +
+  geom_segment(
+    data = edges_data_europe,
+    aes(
+      x = lng_from,
+      y = lat_from,
+      xend = lng_to,
+      yend = lat_to
+    ),
+    alpha = 0.3,
+    linewidth = 0.2
+  ) +
+  geom_point(
+    data = cities_europe,
+    aes(lng, lat),
+    color = "black",
+    size = 0.1,
+    alpha = 0.3
+  ) +
+  coord_cartesian(xlim = c(-25, 45), ylim = c(34, 72)) +
+  theme_void()
+  
+```
+```{r}
+cities %>%
+  ggplot(aes(lng, lat)) +
+  borders("world", colour = "gray70", fill = "gray90") +
+  geom_point(size = 0.5) +
+  theme_void() +
+  coord_map()
+```
+
