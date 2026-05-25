@@ -1,7 +1,7 @@
 ---
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 ```{r}
 library(tidyverse)
@@ -12,6 +12,8 @@ library(tidyverse)
 cities <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-05-12/cities.csv')
 links <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-05-12/links.csv')
 ```
+
+### Europe
 
 ```{r}
 edges_data_europe <- links %>%
@@ -28,12 +30,79 @@ cities_europe <- cities %>%
 ```
 
 
+```{r}
+# degree of cities in the twinnned cities graph
+
+cities_source_degree <- edges_data_europe %>%
+  count(source) %>%
+  left_join(cities_europe, by=c("source" = "id")) %>%
+  rename(id = source)
+
+cities_target_degree <- edges_data_europe %>%
+  count(target) %>%
+  left_join(cities_europe, by=c("target" = "id")) %>%
+  rename(id = target)
+
+cities_degrees <- bind_rows(cities_source_degree, cities_target_degree) %>%
+  group_by(id) %>%
+  summarise(n = sum(n), .groups = "drop") %>%
+  rename(degree = n) %>%
+  inner_join(cities_europe, by=c("id" = "id"))
+```
 
 ```{r}
+cities_degrees %>%
+  arrange(desc(degree))
+```
+
+```{r}
+# Cities within each country which has the highest degree
+cities_degrees %>%
+  group_by(country) %>%
+  slice_max(degree, n = 1, with_ties = TRUE) %>%
+  arrange(desc(degree)) %>%
+  select(country, name, degree)
+```
+
+
+
+
+```{r}
+cities_degrees %>%
+  count(degree) %>%
+  filter(degree > 0) %>%
+  ggplot(aes(x = degree, y = n)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() + 
+  labs(
+    x = "Degree",
+    y = "n",
+    title = "Degree distribution (log–log)"
+  ) +
+  theme_minimal()
+```
+
+
+
+
+
+```{r}
+# plot of Europe's twinned cities connections
+
+min_degree <- 10
+
+important_cities <- cities_degrees %>%
+  filter(degree >= min_degree)
+edges_data_europe_important <- edges_data_europe %>%
+  inner_join(important_cities, by=c("source" = "id")) %>%
+  inner_join(important_cities, by=c("target" = "id"))
+
+
 ggplot() +
   borders("world", colour = "gray80", fill="gray95") +
   geom_segment(
-    data = edges_data_europe,
+    data = edges_data_europe_important,
     aes(
       x = lng_from,
       y = lat_from,
@@ -44,22 +113,18 @@ ggplot() +
     linewidth = 0.2
   ) +
   geom_point(
-    data = cities_europe,
-    aes(lng, lat),
-    color = "black",
-    size = 0.1,
+    data = important_cities,
+    aes(lng, lat, size=degree),
+    color = "red",
     alpha = 0.3
+  ) +
+  labs(
+    title = paste("Twinned cities with at least", min_degree, "sister cities")
   ) +
   coord_cartesian(xlim = c(-25, 45), ylim = c(34, 72)) +
   theme_void()
   
 ```
-```{r}
-cities %>%
-  ggplot(aes(lng, lat)) +
-  borders("world", colour = "gray70", fill = "gray90") +
-  geom_point(size = 0.5) +
-  theme_void() +
-  coord_map()
-```
+
+
 
