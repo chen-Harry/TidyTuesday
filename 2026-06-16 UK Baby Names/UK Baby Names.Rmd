@@ -1,0 +1,92 @@
+---
+title: "UK Baby Names"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(scales)
+```
+
+```{r}
+england_wales_names <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-06-16/england_wales_names.csv')
+ni_names <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-06-16/ni_names.csv')
+scotland_names <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2026/2026-06-16/scotland_names.csv')
+```
+
+```{r}
+unique_names <- england_wales_names %>% #bind_rows(england_wales_names, ni_names, scotland_names) %>% 
+  group_by(Year, Sex) %>%
+  summarise(
+    n_unique_names = n_distinct(Name),
+    .groups = "drop"
+    )
+```
+
+```{r}
+ggplot(unique_names, aes(x = Year, y = n_unique_names, color = Sex, group = Sex)) +
+  geom_line(linewidth=1.5) +
+  scale_color_manual(values = c(
+    "Boy" = "lightblue",
+    "Girl" = "pink"
+  )) + 
+  labs(
+    title = "Number of unique names in England and Wales",
+    x = "Year",
+    y = "Number of unique names"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "grey30"),
+    panel.grid.minor = element_blank()
+    )
+```
+
+```{r}
+# Using Herfindahl–Hirschman index as our statistic for concentration of names
+name_concentration <- england_wales_names %>%
+  group_by(Year, Sex) %>%
+  summarise(
+    hhi = sum((Number / sum(Number))^2),
+    .groups = "drop"
+  )
+
+boy_col <- "#1f77b4"
+girl_col <- "#ff7f0e"
+
+ggplot(name_concentration, aes(Year, hhi, colour = Sex, group = Sex)) +
+  #geom_line(linewidth = 1.2) +
+  geom_smooth(se = FALSE) + 
+  scale_y_continuous(labels = percent_format()) +
+  scale_color_manual(values = c(
+    "Boy" = boy_col,
+    "Girl" = girl_col
+  )) +
+  labs(
+    title = "Names are becoming more diverse over time",
+    subtitle = "Probability that 2 random baby boys/girls have the same name",
+    caption = "Source: Baby names in England and Wales: from 1996 - Office for National Statistics",
+    x = "Year",
+    y = "Probability",
+    colour = "Sex"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "grey30"),
+    plot.subtitle = element_text(size = 13, color = "grey30", lineheight = 1.1),
+    plot.caption = element_text(size = 8.5, color = "grey45"), 
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+    )
+
+ggsave("UK Baby Names.png", width=10, height=7)
+```
+
+```{r}
+england_wales_names %>%
+  group_by(Year, Sex) %>%
+  filter(Rank == 1) %>%
+  ungroup()
+```
+
+

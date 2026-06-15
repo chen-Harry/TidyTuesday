@@ -99,7 +99,7 @@ edges_data_europe_important <- edges_data_europe %>%
   inner_join(important_cities, by=c("target" = "id"))
 
 
-ggplot() +
+p <- ggplot() +
   borders("world", colour = "gray80", fill="gray95") +
   geom_segment(
     data = edges_data_europe_important,
@@ -124,6 +124,7 @@ ggplot() +
   coord_cartesian(xlim = c(-25, 45), ylim = c(34, 72)) +
   theme_void()
   
+ggsave("Twinned_cities.png", plot=p, width=10, height=7)
 ```
 
 
